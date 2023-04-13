@@ -17,12 +17,21 @@ header{
 .main{
     grid-area: main_content;
     grid-template-areas: "content";
+    grid-template-areas: "content" "main_map";
+    display: grid;
 }
 
 #contents{
     grid-area: content;
     
 }
+
+#the_map{ 
+    height:80vh; 
+    grid-area: main_map;
+    
+}
+
 
 .profile-picture{
     width: 25%;
