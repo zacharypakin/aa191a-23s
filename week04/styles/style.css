@@ -15,11 +15,11 @@ header{
 }
 
 .main{
-        grid-area: main_content;
-        grid-template-columns: 1fr 1fr; 
-        grid-template-areas: "main_map content"; 
-        display: grid;
-    }    
+    grid-area: main_content;
+    grid-template-areas: "content";
+    grid-template-areas: "content" "main_map";
+    display: grid;
+}
 
 #contents{
     grid-area: content;
