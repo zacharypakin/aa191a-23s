@@ -31,7 +31,7 @@ function createButtons(lat, lng, title) {
   newButton.setAttribute("lat", lat);
   newButton.setAttribute("lng", lng);
   newButton.addEventListener("click", function () {
-    map.flyTo([lat, lng]);
+    map.flyTo([lat, lng], 8);
   });
   document.getElementById("location-buttons").appendChild(newButton);
 }
