@@ -1,46 +1,10 @@
-
-
 let mapOptions = {'center': [38,0],'zoom':2}
 
-// use the variables
 const map = L.map('the_map').setView(mapOptions.center, mapOptions.zoom);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
-
-// var usa = L.icon({
-//     iconUrl: 'media/usa.png',
-//     // shadowUrl: 'media/usa.png',
-
-//     iconSize:     [38, 60], // size of the icon
-//     // shadowSize:   [50, 64], // size of the shadow
-//     iconAnchor:   [19, 60], // point of the icon which will correspond to marker's location
-//     // shadowAnchor: [4, 62],  // the same for the shadow
-//     // popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-// });
-
-// var spain = L.icon({
-//     iconUrl: 'media/spain.png',
-//     // shadowUrl: 'media/spain.png',
-
-//     iconSize:     [38, 50], // size of the icon
-//     // shadowSize:   [50, 64], // size of the shadow
-//     iconAnchor:   [19, 50], // point of the icon which will correspond to marker's location
-//     // shadowAnchor: [4, 62],  // the same for the shadow
-//     // popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-// });
-
-// var italy = L.icon({
-//     iconUrl: 'media/italy.png',
-//     // shadowUrl: 'media/italy.png',
-
-//     iconSize:     [38, 30], // size of the icon
-//     // shadowSize:   [50, 64], // size of the shadow
-//     iconAnchor:   [19, 30], // point of the icon which will correspond to marker's location
-//     // shadowAnchor: [4, 62],  // the same for the shadow
-//     // popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-// });
 
 var greenIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -60,35 +24,26 @@ var redIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-// create a function to add markers
-function addMarker(lat,lng,title,message,icon_sel){
-    console.log(message)
-    L.marker([lat,lng],{icon:icon_sel}).addTo(map).bindPopup(`<h2 style="color:black; font-size: 1.2rem;">${title}</h2> <h3 style="color:black;line-height: 1.5; font-size: 0.9rem;">${message}</h3>`)
-    //createButtons(lat,lng,title); 
-    return message
+function createButtons(lat, lng, title) {
+  const newButton = document.createElement("button");
+  newButton.id = "button" + title;
+  newButton.innerHTML = title;
+  newButton.setAttribute("lat", lat);
+  newButton.setAttribute("lng", lng);
+  newButton.addEventListener("click", function () {
+    map.flyTo([lat, lng]);
+  });
+  document.getElementById("location-buttons").appendChild(newButton);
 }
-function createButtons(lat,lng,title){
-    const newButton = document.createElement("button"); 
-    newButton.id = "button"+title; 
-    newButton.innerHTML = title; 
-    newButton.setAttribute("lat",lat); 
-    newButton.setAttribute("lng",lng); 
-    newButton.addEventListener('click', function(){
-        map.flyTo([lat,lng]); 
-    })
-    document.getElementById("contents").appendChild(newButton); 
-}
-
 
 const dataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRESUOf9n3y8vL19jjop5uHE_nhMTNxw7Z3MVeAi1JJFZ3UVLPBlDHJv_nWT7slZjWEJjoH0LzFQ4S9/pub?output=csv";
-
 
 function loadData(url){
     Papa.parse(url, {
         header: true,
         download: true,
         complete: results => processData(results)
-    })``
+    })
 }
 
 function grabMessage(data) {
@@ -113,48 +68,107 @@ function grabMessage(data) {
     return message;
 }
 
-function processData(results){
-    console.log(results)
-    results.data.forEach(data => {
-        icon_sel = greenIcon;
-        if(data['Did you experience any barriers to vaccination?'] == 'Yes'){
-            icon_sel = redIcon;
-        }
-
-        console.log(data)
-        grabMessage(data)
-        addMarker(data.lat,data.lng,data['Location'],grabMessage(data),icon_sel);
-    })
-}
-
-// define the legend object
-var legend = L.control({position: 'bottomright'});
-
-// add the legend
-legend.onAdd = function (map) {
-
-    var div = L.DomUtil.create('div', 'info legend'),
-        grades = ['No Barriers Faced', 'Barriers Faced'],
-        labels = ['marker-icon-green.png', 'marker-icon-red.png'];
-
-    for (var i = 0; i < grades.length; i++) {
-        div.innerHTML +=
-            '<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/' + labels[i] + '" alt="' + grades[i] + '"> ' +
-            grades[i] + '<br>';
+function processData(results) {
+  console.log(results);
+    results.data.forEach((data) => {
+    icon_sel = greenIcon;
+    let isBarrier = false;
+    if (data["Did you experience any barriers to vaccination?"] == "Yes") {
+      icon_sel = redIcon;
+      isBarrier = true;
     }
 
-    return div;
+    console.log(data);
+    grabMessage(data);
+    addMarker(data.lat, data.lng, data["Location"], grabMessage(data), icon_sel, isBarrier);
+  });
+
+  // Add layers to the map
+  markersWithBarriers.addTo(map);
+  markersWithoutBarriers.addTo(map);
+}
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function (map) {
+  var div = L.DomUtil.create("div", "info legend");
+    div.innerHTML = "<h4>Click to Toggle</h4><br>";
+  var noBarriers = L.DomUtil.create("div", "legend-item", div);
+  noBarriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png" alt="No Barriers Faced" class="no-barriers-icon"> <span class="legend-text">No Barriers Faced</span>`;
+  noBarriers.style.cursor = "pointer";
+  noBarriers.addEventListener("click", function () {
+    if (map.hasLayer(markersWithoutBarriers)) {
+      map.removeLayer(markersWithoutBarriers);
+      noBarriers.querySelector(".no-barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+    } else {
+      map.addLayer(markersWithoutBarriers);
+      noBarriers.querySelector(".no-barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png";
+    }
+  });
+
+  var barriers = L.DomUtil.create("div", "legend-item", div);
+  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" alt="Barriers Faced" class="barriers-icon"> <span class="legend-text">Barriers Faced</span>`;
+  barriers.style.cursor = "pointer";
+  barriers.addEventListener("click", function () {
+    if (map.hasLayer(markersWithBarriers)) {
+      map.removeLayer(markersWithBarriers);
+      barriers.querySelector(".barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+    } else {
+      map.addLayer(markersWithBarriers);
+      barriers.querySelector(".barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png";
+    }
+  });
+
+  return div;
 };
+
 
 legend.addTo(map);
 
+const markersWithBarriers = L.layerGroup();
+const markersWithoutBarriers = L.layerGroup();
 
+function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
+  console.log(message);
+  const marker = L.marker([lat, lng], { icon: icon_sel }).bindPopup(
+    `<h2 style="color:black; font-size: 1.2rem;">${title}</h2> <h3 style="color:black;line-height: 1.5; font-size: 0.9rem;">${message}</h3>`
+  );
 
+  if (isBarrier) {
+    markersWithBarriers.addLayer(marker);
+  } else {
+    markersWithoutBarriers.addLayer(marker);
+  }
+  createButtons(lat,lng,title);
+}
+
+legend.onAdd = function (map) {
+  var div = L.DomUtil.create("div", "info legend");
+
+  var noBarriers = L.DomUtil.create("div", "legend-item", div);
+  noBarriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png" alt="No Barriers Faced"> No Barriers Faced`;
+  noBarriers.style.cursor = "pointer";
+  noBarriers.addEventListener("click", function () {
+    if (map.hasLayer(markersWithoutBarriers)) {
+      map.removeLayer(markersWithoutBarriers);
+    } else {
+      map.addLayer(markersWithoutBarriers);
+    }
+  });
+
+  var barriers = L.DomUtil.create("div", "legend-item", div);
+  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" alt="Barriers Faced"> Barriers Faced`;
+  barriers.style.cursor = "pointer";
+  barriers.addEventListener("click", function () {
+    if (map.hasLayer(markersWithBarriers)) {
+      map.removeLayer(markersWithBarriers);
+    } else {
+      map.addLayer(markersWithBarriers);
+    }
+  });
+
+  return div;
+};
 
 loadData(dataUrl);
-
-
-
-
-
 
