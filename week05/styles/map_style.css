@@ -90,7 +90,7 @@ header {
 }
 
 #the_map {
-  height: 710px;
+  height: 1100px;
   grid-area: main_map;
 }
 

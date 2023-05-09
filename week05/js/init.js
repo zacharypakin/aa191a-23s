@@ -1,13 +1,31 @@
-let mapOptions = {'center': [38,0],'zoom':2}
+let mapOptions = { 'center': [0, 0], 'zoom': 2 }
 
 const map = L.map('the_map').setView(mapOptions.center, mapOptions.zoom);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
 var greenIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+var greyIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+var orangeIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -38,43 +56,46 @@ function createButtons(lat, lng, title) {
 
 const dataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRESUOf9n3y8vL19jjop5uHE_nhMTNxw7Z3MVeAi1JJFZ3UVLPBlDHJv_nWT7slZjWEJjoH0LzFQ4S9/pub?output=csv";
 
-function loadData(url){
-    Papa.parse(url, {
-        header: true,
-        download: true,
-        complete: results => processData(results)
-    })
+function loadData(url) {
+  Papa.parse(url, {
+    header: true,
+    download: true,
+    complete: results => processData(results)
+  })
 }
 
 function grabMessage(data) {
-    let comfortable = false;
-    if(data['Would you be comfortable sharing your story?'] == 'Yes'){
-        comfortable = true;
-    }
+  let comfortable = false;
+  if (data['Would you be comfortable sharing your story?'] == 'Yes') {
+    comfortable = true;
+  }
 
-    message = ('<i>English spoken fluently: </i>' + data['Do you speak English fluently?'] + '<br>'
-        + '<i>Comfortable Sharing Story: </i>' + data['Would you be comfortable sharing your story?']);
+  message = ('<i>English spoken fluently: </i>' + data['Do you speak English fluently?'] + '<br>' + '<i>Voted: </i>' + data['Did you vote in the most recent federal election in your place of residence?'] + '<br>'
+    + '<i>Comfortable Sharing Story: </i>' + data['Would you be comfortable sharing your story?']);
 
-    if(comfortable){
-        if(data['Did you experience any side effects from the vaccine?'] != '')
-            message += '<br>' + ('<i>Vaccine Side Effects: </i>' + data['Did you experience any side effects from the vaccine?']);
-        
-        if(data['Please share any barriers you faced'] != '')
-            message += ('<br>' + '<i>Barriers to Vaccination: </i>' + data['Please share any barriers you faced']);
-        else
-            message += ('<br>' + '<i>Barriers to Vaccination: </i>' + 'None Provided');
-    }
+  if (comfortable) {
+    if (data['If you are comfortable, please share if you felt pressured to vote a certain way and the source of that pressure.'] != '')
+      message += '<br>' + ('<i>Pressures in voting: </i>' + data['If you are comfortable, please share if you felt pressured to vote a certain way and the source of that pressure.']);
 
-    return message;
+    if (data['If you are comfortable, please share any other barriers to voting you faced'] != '')
+      message += ('<br>' + '<i>Other Voting Barriers: </i>' + data['If you are comfortable, please share any other barriers to voting you faced']);
+    else
+      message += ('<br>' + '<i>Other Voting Barriers: </i>' + 'None Provided');
+  }
+
+  return message;
 }
 
 function processData(results) {
   console.log(results);
-    results.data.forEach((data) => {
+  results.data.forEach((data) => {
     icon_sel = greenIcon;
     let isBarrier = false;
-    if (data["Did you experience any barriers to vaccination?"] == "Yes") {
-      icon_sel = redIcon;
+    if (data["Did you experience any barriers to voting?"] == "Yes") {
+      if (data['Did you vote in the most recent federal election in your place of residence?'] == "No") {
+        icon_sel = redIcon;
+      }
+      else { icon_sel = orangeIcon; }
       isBarrier = true;
     }
 
@@ -86,47 +107,68 @@ function processData(results) {
   // Add layers to the map
   markersWithBarriers.addTo(map);
   markersWithoutBarriers.addTo(map);
+  markersWithBarriersNoVote.addTo(map);
 }
 
-var legend = L.control({position: 'bottomright'});
-
+var legend = L.control({ position: 'bottomright' });
 legend.onAdd = function (map) {
   var div = L.DomUtil.create("div", "info legend");
-    div.innerHTML = "<h4>Click to Toggle</h4><br>";
+
   var noBarriers = L.DomUtil.create("div", "legend-item", div);
-  noBarriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png" alt="No Barriers Faced" class="no-barriers-icon"> <span class="legend-text">No Barriers Faced</span>`;
+  noBarriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png" alt="No Barriers Faced"> No Barriers Faced`;
   noBarriers.style.cursor = "pointer";
   noBarriers.addEventListener("click", function () {
     if (map.hasLayer(markersWithoutBarriers)) {
       map.removeLayer(markersWithoutBarriers);
-      noBarriers.querySelector(".no-barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+      noBarriers.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+
     } else {
       map.addLayer(markersWithoutBarriers);
-      noBarriers.querySelector(".no-barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png";
+      noBarriers.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png";
     }
   });
 
+
   var barriers = L.DomUtil.create("div", "legend-item", div);
-  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" alt="Barriers Faced" class="barriers-icon"> <span class="legend-text">Barriers Faced</span>`;
+  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png" alt="Didn't Vote & Barriers Faced">Didn't Vote & Barriers Faced`;
   barriers.style.cursor = "pointer";
   barriers.addEventListener("click", function () {
     if (map.hasLayer(markersWithBarriers)) {
       map.removeLayer(markersWithBarriers);
-      barriers.querySelector(".barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+      barriers.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
     } else {
       map.addLayer(markersWithBarriers);
-      barriers.querySelector(".barriers-icon").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png";
+      barriers.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png";
+
     }
   });
+
+  var newIcon = L.DomUtil.create("div", "legend-item", div);
+  newIcon.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" alt="Voted & Barriers Faced"> Voted & Barriers Faced`;
+  newIcon.style.cursor = "pointer";
+  newIcon.addEventListener("click", function () {
+    if (map.hasLayer(markersWithBarriersNoVote)) {
+      map.removeLayer(markersWithBarriersNoVote);
+      newIcon.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png";
+    } else {
+      map.addLayer(markersWithBarriersNoVote);
+      newIcon.querySelector("img").src = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png";
+
+    }
+  });
+
+  L.DomEvent.disableClickPropagation(div); // prevent click on legend container from propagating to map
+
 
   return div;
 };
 
-
 legend.addTo(map);
+
 
 const markersWithBarriers = L.layerGroup();
 const markersWithoutBarriers = L.layerGroup();
+const markersWithBarriersNoVote = L.layerGroup();
 
 function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
   console.log(message);
@@ -134,14 +176,15 @@ function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
     `<h2 style="color:black; font-size: 1.2rem;">${title}</h2> <h3 style="color:black;line-height: 1.5; font-size: 0.9rem;">${message}</h3>`
   );
 
-  if (isBarrier) {
+  if (icon_sel === orangeIcon) {
     markersWithBarriers.addLayer(marker);
+  } else if (isBarrier) {
+    markersWithBarriersNoVote.addLayer(marker);
   } else {
     markersWithoutBarriers.addLayer(marker);
   }
-  createButtons(lat,lng,title);
+  createButtons(lat, lng, title);
 }
-
 legend.onAdd = function (map) {
   var div = L.DomUtil.create("div", "info legend");
 
@@ -157,7 +200,7 @@ legend.onAdd = function (map) {
   });
 
   var barriers = L.DomUtil.create("div", "legend-item", div);
-  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" alt="Barriers Faced"> Barriers Faced`;
+  barriers.innerHTML = `<img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png" alt="Barriers Faced"> Barriers Faced`;
   barriers.style.cursor = "pointer";
   barriers.addEventListener("click", function () {
     if (map.hasLayer(markersWithBarriers)) {
