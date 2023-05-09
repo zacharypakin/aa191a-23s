@@ -170,6 +170,7 @@ const markersWithBarriers = L.layerGroup();
 const markersWithoutBarriers = L.layerGroup();
 const markersWithBarriersNoVote = L.layerGroup();
 
+var count = 0;
 function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
   console.log(message);
   const marker = L.marker([lat, lng], { icon: icon_sel }).bindPopup(
@@ -183,7 +184,10 @@ function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
   } else {
     markersWithoutBarriers.addLayer(marker);
   }
-  createButtons(lat, lng, title);
+  if (count < 20) {
+    createButtons(lat, lng, title);
+    count++;
+  }
 }
 legend.onAdd = function (map) {
   var div = L.DomUtil.create("div", "info legend");
