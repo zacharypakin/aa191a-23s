@@ -184,7 +184,8 @@ function addMarker(lat, lng, title, message, icon_sel, isBarrier) {
   } else {
     markersWithoutBarriers.addLayer(marker);
   }
-  if (count < 20) {
+  var randy = Math.floor(Math.random() * 10);
+  if (randy < 4 && count < 12) {
     createButtons(lat, lng, title);
     count++;
   }
